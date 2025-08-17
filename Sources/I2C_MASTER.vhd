@@ -139,9 +139,9 @@ begin
                      if(SDA = '0') then                         --ACK menagement.
                         if(clk_count = clk_per_bit-1) then      --reading SDA, if it is in rising edge of SCL, but it lasts for an entire SCL period.
                             if(rw = '0') then
-                                current_state <= wr_bit;        --writing state
+                                current_state <= wr_bit;        --writing state        mi sa che devo precaricare il primo bit di dati a 3/4 non a clk_per_bit
                             else
-                                current_state <= rd_bit;        --reading state
+                                current_state <= rd_bit;        --reading state       qui forse è apposto perche e lo slava che lo fa
                             end if;
                             clk_count <= 0;
                             bit_count <= 0;
@@ -182,7 +182,11 @@ begin
                 end if;
                 
                 
-                if(bit_count < 8) then  --poi vedi se è effettivamente 8 o altro
+                if(bit_count = 0) then       --devo mettere prima gia il primo bit subito credo, poi anticipare a 3/4 il secondo e poi si puo andare con laltro if fino a 8
+                                             --se 0 qui sennò se minore di 8 ma non zero dilà
+                
+                
+                elsif(bit_count < 8) then  --poi vedi se è effettivamente 8 o altro
                     
 
                     --forse essendo gia stato aspettato un clk_per_bit bisognarebbe gia far partire il primo bit di dato, da controllare
