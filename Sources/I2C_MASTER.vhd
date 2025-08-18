@@ -123,8 +123,14 @@ begin
                 if(bit_count < 8) then                          --it counts from 0 to 7 (7 index bits and also r/w bit), then it reads ACK.
                     
                     if(clk_count = (clk_per_bit-1)*3/4) then    --before index starts, master needs to precharge index bit to stability reason, 3/4 of period is enought.
-                        SDA <= reg_rw_index(7 - bit_count);     --7 - bit_count because master sends from MSB to LSB and r/w bit, so from 7(MSB) to 0(r/w).
-                                                                --!!!!!!!!!poi ci dovrà essere il controllo prima se SDA è zero per il multi master
+                        
+                        --SDA <= reg_rw_index(7 - bit_count);       --7 - bit_count because master sends from MSB to LSB and r/w bit, so from 7(MSB) to 0(r/w).
+                        if(reg_rw_index(7-bit_count) = '0') then    --to set SDA to '0' or 'Z' a condition is needed, otherwise it can't perform high impedance
+                            SDA <= '0';                             --with just this code line: SDA <= reg_rw_index(7 - bit_count)
+                        else
+                            SDA <= 'Z';
+                        end if;
+                                                                --ricorda gestire poi SDA per il multimaster
                     elsif(clk_count = clk_per_bit-1) then
                         clk_count <= 0;
                         bit_count <= bit_count + 1;             --bit_count deve essere aggiornato solo una volta che finisce l'intero ciclo del clock.
@@ -133,23 +139,28 @@ begin
                         clk_count <= clk_count + 1;
                     end if;
                    
-                
+                --!!!!ATTENZIONE MOLTO IMPORTANTE PRIMA DI METTERE IF SDA = '0' DEVO METTERLO IN HIGH IMPEDANCE O NO?
                 elsif(bit_count = 8) then                       --pay attention bit_count <= 0 just at the end of state, so when current_state <= wr or rd.
                 
-                     if(SDA = '0') then                         --ACK menagement.
+                    SDA <= 'Z';                                 --Everytime SDA is used like an input, it requires to be setted high impedance.
+                    if(SDA = '0') then                          --ACK menagement.
+                        --forse devo fare unaltro stato per far si che possa effettivamente togliermi l'if di sda però non so se con scl il clock funziona
+                        --if(clk_count = (clk_per_bit-1)*3/4) then
+                            --SDA <= buffer_io(7);--no non posso va in conflitto cxon if sda
+                        --elsif    
                         if(clk_count = clk_per_bit-1) then      --reading SDA, if it is in rising edge of SCL, but it lasts for an entire SCL period.
                             if(rw = '0') then
                                 current_state <= wr_bit;        --writing state        mi sa che devo precaricare il primo bit di dati a 3/4 non a clk_per_bit
                             else
-                                current_state <= rd_bit;        --reading state       qui forse è apposto perche e lo slava che lo fa
+                                current_state <= rd_bit;        --reading state       qui forse è apposto perche e lo slave che lo fa
                             end if;
                             clk_count <= 0;
                             bit_count <= 0;
                         else
-                            clk_count <= clk_count + 1 ;
+                               clk_count <= clk_count + 1 ;
                         end if;
-                     
-                     else
+                        
+                    else
                                                                 --NACK menagement.
                         nack_error <= '1';                      --theorically nack_error lasts an entire clock cycle, so it has to wait for ic_frequency/frequency_I2C.
                         if(clk_count = clk_per_bit-1) then--non so se alla fine dopo current state mettere il nack_error a 0!!!!!!
@@ -184,7 +195,11 @@ begin
                 
                 if(bit_count = 0) then       --devo mettere prima gia il primo bit subito credo, poi anticipare a 3/4 il secondo e poi si puo andare con laltro if fino a 8
                                              --se 0 qui sennò se minore di 8 ma non zero dilà
-                
+                    ---------------------------poi controlla perche sono un po stanco non so se scrivo giusto
+                    if(bit_count = 0) then                      --it sets SDA just the first time.
+                    --bisogna precaricarlo a 3/4 forse prima nell'altro stato !!!!!!!!!!!!!
+                    end if;
+                    ---------------------------
                 
                 elsif(bit_count < 8) then  --poi vedi se è effettivamente 8 o altro
                     
@@ -203,6 +218,7 @@ begin
                     else
                         clk_count <= clk_count + 1;
                     end if;
+                    
                     
                     
                     
@@ -235,6 +251,15 @@ end process;
        
 
 end I2C_CORE_bh;
+
+
+
+
+
+
+
+
+
 
 
 
