@@ -48,15 +48,25 @@ signal current_state: SM := idle_bit;
 signal clk_count: integer := 0;                                       --used by counter to get 100kHz or others...
 signal bit_count: integer := 0;                                       --used to send/recieve bit by bit.
 signal reg_rw_index: std_logic_vector(7 downto 0) := (others => '0'); --used to concatenate rw and reg_index signals.
-signal buffer_io: std_logic_vector(7 downto 0) := (others => '0');    --used to write next data value.
+signal buffer_io: std_logic_vector(7 downto 0) := (others => '0');    --used to write/read next data value.
 signal past_index: std_logic_vector(6 downto 0) := (others => '0');   --used like buffer to compare with current reg_index.
 signal temp: integer range 0 to 1:= 0;                                --used to do double SCL clicle: first for ACK/NACK statement, second one for stop_bit
                                                                       --because idle doesn't start with an if(clk_count = clk_per_bit),
                                                                       --so mastes has to do the stop_bit cicle inside stop_bit statement.
 
 begin
+
+--allora parliamo di buffer_io, puo essere usato sia in in che out, devo vedere che posso usarlo in entrambi i casi, vedendo se è possibile
+--gestire la transizione di buffer_io da in ad out e viceversa. inoltre devo considerare che di defeault reg_io deve essere tri-state per evitare conflitti
+--o peggio cortocircuiti.
+--inoltre devo sistemare che ho due process che assegnano valori allo stesso signal.
+--per ovviare a ciò non e difficile, perche se vedo bene il valore lo assegno solo appena entrato in wr_bit o rd_bit dove clk_count = 0 (una sola volta).
+
+--poi cera qualcosa da fare con buffer o rd_bit
+
+
 --GESTIRE IL BUSY !!!!!!!!!!!!!!!!!!!!!!!!!!!!
---Nota che buffer è solo per il dato da inviare, quello che si riceve bisogna gestirlo!!!!!!!!!!!!!!!!!!!!!!!
+
 
 
 
@@ -65,24 +75,34 @@ Merge: reg_rw_index <= rw & reg_index;              --it is usefull because in t
 
 --probabilmente serve perchè il buffer deve essere caricato prima, va bene quando entra in indrw_state? forse su wr_bit
 --devo capire se all'inzio della trasmissione è ok, perchè in questo modo bisogna avere il busy piu che allo start dopo o no bho
-Sample: process(RESET, current_state)
-begin
-    if(RESET = '0') then
-        buffer_io <= (others => '0');
-        past_index <= (others => '0');
-    elsif(current_state = wr_bit) then              --it executes here just ones, when state changes from indrw_bit to wr_bit.
-        buffer_io <= reg_io;
-        past_index <= reg_index;                    --when current_state is indrw_bit it stores the slave index for future comparation.
-    end if;
 
-end process;
 
+
+-----------------------------------------------DA CANCELLARE
+--Sample: process(RESET, current_state)---------------------------------probabilmente da cancellare
+--begin
+--    if(RESET = '0') then
+--        buffer_io <= (others => '0');
+--        past_index <= (others => '0');
+--        reg_io <= (others => 'Z'); --ah l'avevo gia messo dall'altro reset.
+--    elsif(current_state = wr_bit) then              --it executes here just ones, when state changes from indrw_bit to wr_bit.
+--        buffer_io <= reg_io;
+--        past_index <= reg_index;                    --when current_state is indrw_bit it stores the slave index for future comparation.
+--    end if;
+--
+--end process;
+--------------------------------------------------------------------------------------------------------------------------
 
 I2C_SM: process(RESET, CLK)
 begin
 
     if(RESET = '0') then
         current_state <= idle_bit;
+        ---------------------------------------------apposto cosi cioe in idle basta il reg_io non gli altri due qui invece servono tutti e tre
+        buffer_io <= (others => '0');
+        past_index <= (others => '0');
+        reg_io <= (others => 'Z');
+        ---------------------------------------------
         --buffer_io <= (others => '0');         --already reset in Sample process.
         reg_io <= (others => 'Z');              --it is important because if the value is high or low it could create a short-circuit.
         nack_error <= '0';
@@ -134,6 +154,12 @@ begin
             when indrw_bit =>
                 busy <= '1';                                    --buffer occupied for half comunication time.
                 
+                
+                if(bit_count = 0 AND clk_count = 0) then        --just when current_state enters in indrw_bit.
+                    past_index <= reg_index;                    --when current_state is indrw_bit it stores the slave index for future comparation.
+                end if;
+                
+                
                 if(clk_count < (clk_per_bit-1)/2) then          --change SCL each half period.
                         SCL <= 'Z';
                 else
@@ -178,9 +204,10 @@ begin
                             else
                                 current_state <= rd_bit;        --reading state.
                             end if;
-                                                                -- --> ricorda che io faccio sempre prima il ciclo e poi la lettura perche lho fatto cosi,
+                                                                ----> ricorda che io faccio sempre prima il ciclo e poi la lettura perche lho fatto cosi,
                                                                 --quindi il tempo del nack e il tempo che scorre nello stop, ricorda poi che nello stop
                                                                 --dovra poi aspettare poi dopo lo stop stesso
+                                                                
                         else                                    --NACK management
                             current_state <= stop_bit;
                             nack_error <= '1';                  --dovrebbe esserci giusto ? !!!!!!!!!! mi pare di si
@@ -214,6 +241,10 @@ begin
                 end if;
                 
                 
+                if(bit_count = 0 AND clk_count = 0) then        --only the first time current_state enters in wr_bit.
+                    buffer_io <= reg_io;                        --it set the new data frame.
+                end if;
+                
                 if(bit_count = 5) then                          --this code line is used to set busy = '0' in the middle of data transmition.
                     busy <= '0';                                --input device has half data trasmition time to write or read another value in burrer_io
                 end if;
@@ -223,7 +254,12 @@ begin
 
                     
                     if(clk_count = (clk_per_bit-1)*3/4) then    --before data starts, master needs to precharge data bit to stability reason, 3/4 of period is enought.
-                        SDA <= buffer_io(7 - bit_count);
+
+                        if(buffer_io(7-bit_count) = '0') then    --to set SDA to '0' or 'Z' a condition is needed, otherwise it can't perform high impedance
+                            SDA <= '0';                          --with just this code line: SDA <= reg_rw_index(7 - bit_count)
+                        else
+                            SDA <= 'Z';
+                        end if;
                         
                     elsif(clk_count = clk_per_bit-1) then
                         clk_count <= 0;
@@ -266,7 +302,7 @@ begin
                                 bit_count <= 0;
                                 current_state <= stop_bit;
 
-                            else                                        --it will not enter here cause bit_count = 8 (9 bits) is the max allowed.
+                            else                                --it will not enter here cause bit_count = 8 (9 bits) is the max allowed.
                                 bit_count <= 0;
                                 current_state <= idle_bit;
                                 
@@ -319,10 +355,19 @@ begin
 
                 if(bit_count < 8) then
                     if(clk_count = clk_per_bit-1) then
+                        clk_count <= 0;
+                        bit_count <= bit_count + 1;
+                        if(SDA = '0') then                      --here master gets SDA bit at clk_per_bit and not like wr_bit where SDA is set at 3/4 of period.
+                                                                --this cause wr_bit precharge data to send to slave, whereas here it reads data at risign edge of clock
+                        --metti dentro il buffer
+                        ----devi essere sicuro che qui si setti prima dell'if di sda = 0 che sia 'Z' pero devi varlo sempre quando il clock è basso.
+                        end if;
                         --bisogna mettere dentro il buffer di ricezione il valore del primo bit di sda, guarda se sda è da mettere prima in tri state
                         --e se i due buffer possono essere assegnati al reg inout.
                         --ricordati tutti i tipi per start veloce ecc e il past_index
-                    
+                        
+                    else
+                        clk_count <= clk_count + 1;
                     
                     
                     
@@ -408,6 +453,7 @@ end process;
 end I2C_CORE_bh;
 
 --manca solo da fare il rd_bit e poi mettere bello il codice e commenti leggibili.
+
 
 
 
