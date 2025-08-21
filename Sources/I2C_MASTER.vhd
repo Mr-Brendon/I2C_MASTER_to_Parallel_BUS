@@ -2,7 +2,7 @@
 -- 
 --
 --busy is usually high, it is low when you can change data for the all low time,
---(better if you change the data with interrupt, so in falling edge).
+--(better if you change the data with interrupt, so in falling edge, but master doesn't store new data immediately, but when it enters in indrw_bit or wr_bit).
 --for changing slave index, you can do it whenever you want: state machine undertakes to manage it.
 --NOTE: always when SDA is high impedance, master has to control if SDA is high and not low. Otherwise it has to stop trasmission, MULTI MASTER DETECTION.
 --NOTE: always when SCL is high impedance, master has to control if SCL ia high, otherwise there is a striching by slave.
@@ -19,6 +19,7 @@
 --e poi dopo per il suo stato. STA ROBA DIREI CHE E DA SCRIVERE IN INGLESE PERCHE E IMPORTANTE.
 
 
+--forse su stop non serve mettere il busy a 1 dato che poi torna a 0 quindi dove mi serve che vada a 1 lo metto prima? poi ci penso
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
@@ -34,7 +35,7 @@ entity I2C_MASTER_CORE is
          SDA, SCL: inout std_logic;                   --SDA and SCL line from standard
          nack_error, bus_taken, busy: out std_logic   --nack_error = '1' when slave not found or data byte got some troubles by slave. bus_taken = '1' error when
                                                       --multi-master conflicts. busy = '1' when master is not ready to get NEW DATA BITS AND RW BIT, so during half
-                                                      --data transission end others da vedere gli altri casi e quando è libero!!!!!!!!!
+                                                      --data transission(second half byte) end when is in idle_state
                                                                                                             
          );
 end I2C_MASTER_CORE;
@@ -42,13 +43,16 @@ end I2C_MASTER_CORE;
 architecture I2C_CORE_bh of I2C_MASTER_CORE is
 
 constant clk_per_bit: integer := ic_frequency/frequency_I2C;
-type SM is (idle_bit, indrw_bit, wr_bit, rd_bit, ack2_bit, master_ack_bit, stop_bit);
+type SM is (idle_bit, indrw_bit, wr_bit, rd_bit, stop_bit);
 signal current_state: SM := idle_bit;
 signal clk_count: integer := 0;                                       --used by counter to get 100kHz or others...
 signal bit_count: integer := 0;                                       --used to send/recieve bit by bit.
 signal reg_rw_index: std_logic_vector(7 downto 0) := (others => '0'); --used to concatenate rw and reg_index signals.
 signal buffer_io: std_logic_vector(7 downto 0) := (others => '0');    --used to write next data value.
-
+signal past_index: std_logic_vector(6 downto 0) := (others => '0');   --used like buffer to compare with current reg_index.
+signal temp: integer range 0 to 1:= 0;                                --used to do double SCL clicle: first for ACK/NACK statement, second one for stop_bit
+                                                                      --because idle doesn't start with an if(clk_count = clk_per_bit),
+                                                                      --so mastes has to do the stop_bit cicle inside stop_bit statement.
 
 begin
 --GESTIRE IL BUSY !!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -59,13 +63,16 @@ begin
 
 Merge: reg_rw_index <= rw & reg_index;              --it is usefull because in the counter we want to send all bits with just one condition, so < 8.
 
---probabilmente serve perchè il buffer deve essere caricato prima, va bene quando entra in indrw_state? 
+--probabilmente serve perchè il buffer deve essere caricato prima, va bene quando entra in indrw_state? forse su wr_bit
+--devo capire se all'inzio della trasmissione è ok, perchè in questo modo bisogna avere il busy piu che allo start dopo o no bho
 Sample: process(RESET, current_state)
 begin
     if(RESET = '0') then
         buffer_io <= (others => '0');
-    elsif(current_state = indrw_bit) then           --it executes here just ones, when state changes from idle_bit to indrw_bit.
+        past_index <= (others => '0');
+    elsif(current_state = wr_bit) then              --it executes here just ones, when state changes from indrw_bit to wr_bit.
         buffer_io <= reg_io;
+        past_index <= reg_index;                    --when current_state is indrw_bit it stores the slave index for future comparation.
     end if;
 
 end process;
@@ -76,12 +83,13 @@ begin
 
     if(RESET = '0') then
         current_state <= idle_bit;
-        buffer_io <= (others => '0');
+        --buffer_io <= (others => '0');         --already reset in Sample process.
         reg_io <= (others => 'Z');              --it is important because if the value is high or low it could create a short-circuit.
         nack_error <= '0';
         bus_taken <= '0';--probabilmente usato poi per il multi_master
         clk_count <= 0;
         bit_count <= 0;
+        temp <= 0;
         busy <= '1';
         SDA <= 'Z';
         SCL <= 'Z';
@@ -100,6 +108,7 @@ begin
                 bus_taken <= '0';--probabilmente usato poi per il multi_master
                 clk_count <= 0;
                 bit_count <= 0;
+                temp <= 0;
                 busy <= '0';                    --here busy is equal to '0' so master is free.
                 SDA <= 'Z';
                 SCL <= 'Z';
@@ -152,7 +161,7 @@ begin
                         clk_count <= clk_count + 1;
                     end if;
                    
-                elsif(bit_count = 8) then                       --pay attention bit_count <= 1 just at current_state <= wr or rd.
+                elsif(bit_count = 8) then                       --pay attention bit_count <= 1 just at current_state <= wr or rd. ACK reading if
                 
                 
                     if(clk_count = (clk_per_bit-1)/2) then
@@ -161,9 +170,8 @@ begin
                     
                     elsif(clk_count = clk_count-1) then
                         
-                        clk_count <= 0;                         --ACK/NACK management
                         
-                        if(SDA = '0') then
+                        if(SDA = '0') then                      --ACK/NACK management
                             
                             if(rw = '0') then                   --ACK management
                                 current_state <= wr_bit;        --writing state.
@@ -175,6 +183,8 @@ begin
                                                                 --dovra poi aspettare poi dopo lo stop stesso
                         else                                    --NACK management
                             current_state <= stop_bit;
+                            nack_error <= '1';                  --dovrebbe esserci giusto ? !!!!!!!!!! mi pare di si
+                            
                         end if;
                         
                         clk_count <= 0;
@@ -196,7 +206,6 @@ begin
                 
                 
                 
-
             when wr_bit=>
                 if(clk_count < (clk_per_bit-1)/2) then          --change SCL each half period.
                         SCL <= 'Z';
@@ -210,11 +219,11 @@ begin
                 end if;
                 
                 
-                if(bit_count < 8) then  --poi vedi se è effettivamente 8 o altro
+                if(bit_count < 8) then
 
                     
                     if(clk_count = (clk_per_bit-1)*3/4) then    --before data starts, master needs to precharge data bit to stability reason, 3/4 of period is enought.
-                        SDA <= reg_rw_index(7 - bit_count);--qui ci va buffer_io
+                        SDA <= buffer_io(7 - bit_count);
                         
                     elsif(clk_count = clk_per_bit-1) then
                         clk_count <= 0;
@@ -225,10 +234,57 @@ begin
                     end if;
                     
                     
-                elsif(bit_count = 8) then ---vedere se 8 è giusto
+                elsif(bit_count = 8) then --qui devo leggere l'ack
                 
-                    --gestire lultimo bit dopo data credo qui ci sia ack
+                    if(clk_count = (clk_per_bit-1)/2) then
+                        SDA <= 'Z';                             --Everytime SDA is used like an input, it requires to be setted high impedance in low edge SCL.
                     
+                    
+                    elsif(clk_count = clk_count-1) then
+                        
+                        clk_count <= 0;   
+                        --guarda se si puo mettere fuori anche bit_count          
+                        
+                        if(SDA = '0') then                      --ACK/NACK management
+                            if(start = '1' AND rw = '0' AND past_index = reg_index) then
+                                --next frame transmition
+                                --past_index <= reg_index; --itis already the same. Not needed.
+                                --current_state <= wr_bit; --not needed but to clarify.
+                                bit_count <= 0;
+                                buffer_io <= reg_io;
+                                busy <= '1';
+                                
+                            elsif((start = '1' AND past_index /= reg_index) OR rw = '1') then
+                                --idle o start veloce
+                                --posso andare in idle perchè tanto la trasmissione è sincrona con SCL
+                                current_state <= idle_bit;--idle_bit is just one ic_frequency clock pulse, it doesn't loose sincronization because transition is syncronous.
+                                bit_count <= 0;
+                                busy <= '0'; --already 0.
+                                
+                                
+                            elsif(start = '0') then
+                                bit_count <= 0;
+                                current_state <= stop_bit;
+
+                            else                                        --it will not enter here cause bit_count = 8 (9 bits) is the max allowed.
+                                bit_count <= 0;
+                                current_state <= idle_bit;
+                                
+                            end if;
+                            
+                        else                                    --NACK management
+                            bit_count <= 0;
+                            current_state <= stop_bit;
+                            nack_error <= '1';
+                        end if;
+                        
+                    
+                    else
+                        clk_count <= clk_count + 1;
+                    
+                    
+                    end if;
+                       
                     
                 else                                            --it will not enter here cause bit_count = 8 (9 bits) is the max allowed.
                     
@@ -241,9 +297,58 @@ begin
                     
                 end if;
                 
+           
+           
+           
+           
+           
+           
+           
                 
-                
-         
+            when rd_bit =>
+            
+            
+            
+            
+            
+            
+            
+            
+            when stop_bit =>
+                if(temp = 0) then                               --temp = '0', ACK/NACK state period clock
+                    if(clk_count < (clk_count-1)/2) then
+                        SCL <= 'Z';
+                    else
+                        SCL <= '0';
+                    end if;
+                    
+                    if(clk_count = clk_per_bit-1) then
+                        clk_count <= 0;
+                        current_state <= stop_bit;
+                        temp <= 1;
+                        SDA <= '0';                             --SDA set to 0 to perform stop bit action.
+                        SCL <= 'Z';
+                    
+                    else
+                        clk_count <= clk_count + 1;
+                    
+                    end if;
+                    
+                else                                            --temp = '1'
+                    if(clk_count = (clk_count-1)/2) then        --At half clock period, SDA <= 'Z' to perform stop action. (With SCL already high).
+                        SDA <= 'Z';
+                    elsif(clk_count = clk_count-1) then
+                        clk_count <= 0;
+                        current_state <= idle_bit;
+                        temp <= 0;
+                        
+                    else
+                        clk_count <= clk_count + 1;
+                        
+                    end if;
+                    
+                end if;
+
                 
             
             when others =>
@@ -260,15 +365,11 @@ end I2C_CORE_bh;
 
 
 
---FORSE HO FINITO DI FARE ORA DEVO PRIMA FARE UNA PULITA DEL CODICE, POI UN CONTROLLO SE E' FATTO BENE, SE LA LOGICA FUNZIONA, POI STUDIO DOVE SONO ARRIVATO
---PER I PROSSIMI STATI.
---forse sarebbe anche ora di creare un testbench perchè sennò tutta sta monnezza non funziona
+--dovrei prima fare il rd o prima lo stop, forse lo stop cosi guardo cosa capita...
+--poi metto apposto il prob dentro il wr_bit facerndo lo stop
+--ecc...
 
 --poi guardo se il codice è scritto sensato logicamente e metto bene l'aspetto del codice
-
-
-
-
 
 
 
