@@ -168,7 +168,7 @@ begin
                         SDA <= 'Z';                             --Everytime SDA is used like an input, it requires to be setted high impedance in low edge SCL.
                     
                     
-                    elsif(clk_count = clk_count-1) then
+                    elsif(clk_count = clk_per_bit-1) then
                         
                         
                         if(SDA = '0') then                      --ACK/NACK management
@@ -240,7 +240,7 @@ begin
                         SDA <= 'Z';                             --Everytime SDA is used like an input, it requires to be setted high impedance in low edge SCL.
                     
                     
-                    elsif(clk_count = clk_count-1) then
+                    elsif(clk_count = clk_per_bit-1) then
                         
                         clk_count <= 0;   
                         --guarda se si puo mettere fuori anche bit_count          
@@ -305,7 +305,49 @@ begin
            
            
                 
-            when rd_bit =>
+            when rd_bit =>                                      --busy bit in reading mode works different.
+                                                                --master reads in rd_bit when SCL rises up eacjìh time, so state machine works in this way:
+                                                                --busy = '0' in idle_bit, it became '1' when starts, then at the end of frame reading,
+                                                                --busy becames '0', it lasts '0' for ack bit and for first half clock frame transition period.
+                                                                --so it works contrarily than wr_bit that sets busy to '0' in second half clock period.
+                                                                
+                if(clk_count < (clk_per_bit-1)/2) then          --change SCL each half period.
+                        SCL <= 'Z';
+                else
+                        SCL <= '0';
+                end if;
+
+                if(bit_count < 8) then
+                    if(clk_count = clk_per_bit-1) then
+                        --bisogna mettere dentro il buffer di ricezione il valore del primo bit di sda, guarda se sda è da mettere prima in tri state
+                        --e se i due buffer possono essere assegnati al reg inout.
+                        --ricordati tutti i tipi per start veloce ecc e il past_index
+                    
+                    
+                    
+                    
+                    end if;
+
+
+
+
+
+
+
+                ----------------------------------
+                if(clk_count = clk_per_bit-1) then
+                    clk_count <= 0;
+                    busy <= '0'                                 --dovrebbe aver preso tutti i bit guardiamo dopo
+                
+                end if;
+            
+            
+            
+            
+            
+            
+            
+            
             
             
             
@@ -316,18 +358,20 @@ begin
             
             when stop_bit =>
                 if(temp = 0) then                               --temp = '0', ACK/NACK state period clock
-                    if(clk_count < (clk_count-1)/2) then
+                    if(clk_count < (clk_per_bit-1)/2) then
                         SCL <= 'Z';
                     else
                         SCL <= '0';
                     end if;
                     
-                    if(clk_count = clk_per_bit-1) then
+                    if(clk_count = (clk_per_bit-1)*3/4) then
+                        SDA <= '0';                             --[1]SDA set to 0 to perform stop bit action.
+                    
+                    elsif(clk_count = clk_per_bit-1) then
                         clk_count <= 0;
                         current_state <= stop_bit;
                         temp <= 1;
-                        SDA <= '0';                             --SDA set to 0 to perform stop bit action.
-                        SCL <= 'Z';
+                        SCL <= 'Z';                             --[2]
                     
                     else
                         clk_count <= clk_count + 1;
@@ -335,9 +379,9 @@ begin
                     end if;
                     
                 else                                            --temp = '1'
-                    if(clk_count = (clk_count-1)/2) then        --At half clock period, SDA <= 'Z' to perform stop action. (With SCL already high).
-                        SDA <= 'Z';
-                    elsif(clk_count = clk_count-1) then
+                    if(clk_count = (clk_per_bit-1)/2) then        --At half clock period, SDA <= 'Z' to perform stop action. (With SCL already high).
+                        SDA <= 'Z';                             --[3]
+                    elsif(clk_count = clk_per_bit-1) then
                         clk_count <= 0;
                         current_state <= idle_bit;
                         temp <= 0;
@@ -363,13 +407,10 @@ end process;
 
 end I2C_CORE_bh;
 
+--manca solo da fare il rd_bit e poi mettere bello il codice e commenti leggibili.
 
 
---dovrei prima fare il rd o prima lo stop, forse lo stop cosi guardo cosa capita...
---poi metto apposto il prob dentro il wr_bit facerndo lo stop
---ecc...
 
---poi guardo se il codice è scritto sensato logicamente e metto bene l'aspetto del codice
 
 
 
