@@ -63,13 +63,14 @@ begin
 --poi cera qualcosa da fare con buffer o rd_bit
 
 
---GESTIRE IL BUSY !!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
 
 
 
-Merge: reg_rw_index <= rw & reg_index;              --it is usefull because in the counter we want to send all bits with just one condition, so < 8.
+
+Merge: reg_rw_index <= reg_index & rw;              --it is usefull because in the counter we want to send all bits with just one condition, so < 8.
+                                                    --rw LSB sent after reg_index.
 
 
 --devo capire se all'inzio della trasmissione è ok, perchè in questo modo bisogna avere il busy piu che allo start dopo o no bho
@@ -490,6 +491,10 @@ end I2C_CORE_bh;
 --ricordati delle conduizioni multi master e slave streaching però dopo aver visto che funziona
 
 --guarda il tri state alla fine di wr_bit
+
+--appena finisce la parte alta del clock e va basso, aspetto qualche ciclo di clock con SDA come era prima e poi lo metto ad alta impedenza, questo perchè
+--se lo faccio istantaneamente potrebbero esserci problemi. Tanto lo slave controlla SDA solo al rising edge, o quando è alto per start e stop.
+--Direi di far aspettare 1/20 di clk_per_bit cosi da essere proprio a ridosso comunque. e ricordati poi il clk_count <= clk_count + 1 se lo metti nell'if.
 
 
 
