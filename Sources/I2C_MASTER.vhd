@@ -372,9 +372,9 @@ begin
                             SDA <= '0';                                     --ACK
                         elsif((start = '1' AND past_index /= reg_index) OR rw = '0') then
                             --idle o start veloce
-                            SDA <= 'Z';                                     --NACK
+                            SDA <= 'Z';                                     --NACK, it is a different NACK cause it will go in timing state, without passing stop_bit
                         elsif(start = '0') then
-                            SDA <= 'Z';                                     --NACK
+                            SDA <= 'Z';                                     --NACK da vedere se il nack da prendere nello stop e solo in master trasmissione
                         end if;
                         clk_count <= clk_count + 1;
                         
@@ -390,7 +390,7 @@ begin
                             
                             
                         elsif((start = '1' AND past_index /= reg_index) OR rw = '0') then
-                            current_state <= timing_bit;                     --right in idle_bit like above in wwr_bit state
+                            current_state <= timing_bit;                     --right in idle_bit like above in wr_bit state
                             
 
                                   
@@ -498,5 +498,7 @@ end I2C_CORE_bh;
 --Direi di far aspettare 1/20 di clk_per_bit cosi da essere proprio a ridosso comunque. e ricordati poi il clk_count <= clk_count + 1 se lo metti nell'if.
 
 
---(clk_count = (clk_count-1)*11/20)
-
+--ce un problema con lo stop_bit, se lo stop bit entra da un nack deve tenere alto il valore SCL sennò va normale, siccome non ho un
+--past current_state potrei usare nack error oppure bho ora guardo cosi faccio un if per i due casi!!!!!!!!!!!!
+--ma aspe non avevo messo il timing proprio per togliere uno dei due timing dello stop_bit?? no perchè va in idle dopo il timing perche sono quello non ce ack
+--come il solito dello stop
