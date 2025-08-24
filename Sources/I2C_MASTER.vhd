@@ -10,6 +10,7 @@
 --IMPORTANT: master requires 3 clock sections: half count to switch SCL from high or low, 3/4 count to pre-set SDA due to latency of bus
 --and the last, so the entire period to restart clock again and set proper signals.
 --NOTE: if master has to read SDA, it sets SDA = 'Z' immediately when SCL = '0'.
+--ic_frequency >> frequency_I2C, -> ic_frequency >= 20 * frequency_I2C.
 --
 --
 ----------------------------------------------------------------------------------
@@ -180,7 +181,7 @@ begin
                 elsif(bit_count = 8) then                       --pay attention bit_count <= 1 just at current_state <= wr or rd. ACK reading if
                 
                 
-                    if(clk_count = (clk_per_bit-1)/2) then
+                    if(clk_count = (clk_per_bit-1)*11/20) then  --times 11/20 and not 1/2 cause master has to wait a bit more than 1/2, so 1/2 + 1/20
                         SDA <= 'Z';                             --Everytime SDA is used like an input, it requires to be setted high impedance in low edge SCL.
                         clk_count <= clk_count + 1;
                     
@@ -263,7 +264,7 @@ begin
                     
                 elsif(bit_count = 8) then --qui devo leggere l'ack
                 
-                    if(clk_count = (clk_per_bit-1)/2) then
+                    if(clk_count = (clk_per_bit-1)*11/20) then  --times 11/20 and not 1/2 cause master has to wait a bit more than 1/2, so 1/2 + 1/20
                         SDA <= 'Z';                             --Everytime SDA is used like an input, it requires to be setted high impedance in low edge SCL.
                         clk_count <= clk_count + 1;
                     
@@ -433,7 +434,7 @@ begin
             
             
             when stop_bit =>
-                if(temp = 0) then                               --temp = '0', ACK/NACK state period clock
+                if(temp = 0) then                               --temp = '0', ACK/NACK state period clock.
                     if(clk_count < (clk_per_bit-1)/2) then
                         SCL <= 'Z';
                     else
@@ -456,8 +457,8 @@ begin
                     end if;
                     
                 else                                            --temp = '1'
-                    if(clk_count = (clk_per_bit-1)/2) then        --At half clock period, SDA <= 'Z' to perform stop action. (With SCL already high).
-                        SDA <= 'Z';                             --[3]
+                    if(clk_count = (clk_per_bit-1)/2) then      --At half clock period, SDA <= 'Z' to perform stop action. (With SCL already high).
+                        SDA <= 'Z';                             --[3] here it can be (clk_per_bit-1)/2 cause SCL is always high.
                         clk_count <= clk_count + 1;
                     elsif(clk_count = clk_per_bit-1) then
                         clk_count <= 0;
@@ -497,5 +498,5 @@ end I2C_CORE_bh;
 --Direi di far aspettare 1/20 di clk_per_bit cosi da essere proprio a ridosso comunque. e ricordati poi il clk_count <= clk_count + 1 se lo metti nell'if.
 
 
-
+--(clk_count = (clk_count-1)*11/20)
 
