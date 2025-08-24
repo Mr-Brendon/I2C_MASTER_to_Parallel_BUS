@@ -34,10 +34,8 @@ entity I2C_MASTER_CORE is
          reg_io: inout std_logic_vector(7 downto 0);  --data byte
          SDA, SCL: inout std_logic;                   --SDA and SCL line from standard
          nack_error, bus_taken, busy: out std_logic   --nack_error = '1' when slave not found or data byte got some troubles by slave. bus_taken = '1' error when
-                                                      --multi-master conflicts. busy = '1' when master is not ready to get NEW DATA BITS AND RW BIT, so during half
+        );                                            --multi-master conflicts. busy = '1' when master is not ready to get NEW DATA BITS AND RW BIT, so during half
                                                       --data transission(second half byte) end when is in idle_state
-                                                                                                            
-         );
 end I2C_MASTER_CORE;
 
 architecture I2C_CORE_bh of I2C_MASTER_CORE is
