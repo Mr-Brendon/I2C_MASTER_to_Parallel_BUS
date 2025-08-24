@@ -166,7 +166,7 @@ begin
                         else
                             SDA <= 'Z';
                         end if;
-
+                        clk_count <= clk_count + 1;
 
                     elsif(clk_count = clk_per_bit-1) then
                         clk_count <= 0;
@@ -181,7 +181,7 @@ begin
                 
                     if(clk_count = (clk_per_bit-1)/2) then
                         SDA <= 'Z';                             --Everytime SDA is used like an input, it requires to be setted high impedance in low edge SCL.
-                    
+                        clk_count <= clk_count + 1;
                     
                     elsif(clk_count = clk_per_bit-1) then
                         
@@ -249,6 +249,7 @@ begin
                         else
                             SDA <= 'Z';
                         end if;--ATTENZIONE FORSE ALLA FINE DEL WR_BIT DOVREI METTERE SDA A TRI-STATE BHOO
+                        clk_count <= clk_count + 1;
                         
                     elsif(clk_count = clk_per_bit-1) then
                         clk_count <= 0;
@@ -263,7 +264,7 @@ begin
                 
                     if(clk_count = (clk_per_bit-1)/2) then
                         SDA <= 'Z';                             --Everytime SDA is used like an input, it requires to be setted high impedance in low edge SCL.
-                    
+                        clk_count <= clk_count + 1;
                     
                     elsif(clk_count = clk_per_bit-1) then
                         
@@ -362,7 +363,7 @@ begin
                     end if;
                 
                 elsif(bit_count = 8) then
-                    --mi pare bisogna fare il ciclo di wait pero sta volta bisogna scrivere il ack o nack da gestire.
+                
                     if(clk_count = (clk_per_bit-1)*3/4) then                --precharge SDA.
                         if(start = '1' AND rw = '1' AND past_index = reg_index) then
                             --next frame reception..
@@ -373,6 +374,7 @@ begin
                         elsif(start = '0') then
                             SDA <= 'Z';                                     --NACK
                         end if;
+                        clk_count <= clk_count + 1;
                         
                     elsif(clk_count = clk_per_bit-1) then
                         clk_count <= 0;
@@ -412,7 +414,8 @@ begin
             when timing_bit =>                                  --it is a state where master counts until clk_per_bit, it is used in some state when master needs
                                                                 --to count (example repeated start, it waits ack bit before enter in idle_bit)
                 if(clk_count = 0) then
-                    SCL <= 'Z';                                 --set ACK/NACK of past state. and it stays high for the whole period.
+                    SCL <= 'Z';                                 --set ACK/NACK of past state. and it stays high for the whole period.ù
+                    clk_count <= clk_count + 1;
                 elsif(clk_count = clk_per_bit-1) then
                     current_state <= idle_bit;
                     clk_count <= 0;                             --devo gia mettere SDA a 'Z' quan dentro a 3/4 sennò lo fa a clk_per_bit cioè a ridosso del
@@ -438,6 +441,7 @@ begin
                     
                     if(clk_count = (clk_per_bit-1)*3/4) then
                         SDA <= '0';                             --[1]SDA set to 0 to perform stop bit action.
+                        clk_count <= clk_count + 1;
                     
                     elsif(clk_count = clk_per_bit-1) then
                         clk_count <= 0;
@@ -453,6 +457,7 @@ begin
                 else                                            --temp = '1'
                     if(clk_count = (clk_per_bit-1)/2) then        --At half clock period, SDA <= 'Z' to perform stop action. (With SCL already high).
                         SDA <= 'Z';                             --[3]
+                        clk_count <= clk_count + 1;
                     elsif(clk_count = clk_per_bit-1) then
                         clk_count <= 0;
                         current_state <= idle_bit;
@@ -484,8 +489,7 @@ end I2C_CORE_bh;
 --fai il testbench
 --ricordati delle conduizioni multi master e slave streaching però dopo aver visto che funziona
 
-
-
+--guarda il tri state alla fine di wr_bit
 
 
 
