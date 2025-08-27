@@ -11,7 +11,9 @@
 --and the last, so the entire period to restart clock again and set proper signals.
 --NOTE: if master has to read SDA, it sets SDA = 'Z' immediately when SCL = '0'.
 --ic_frequency >> frequency_I2C, -> ic_frequency >= 20 * frequency_I2C.
---
+--Cazzo però leo c'è andato
+--paradossalmente o neanche tanto è stato più bello e più rinfrescante parlare con Leo
+--ce mi ha dato delle idee interessanti
 --
 ----------------------------------------------------------------------------------
 --COME STRACAZZO E' POSSIBILE CHE SE BEVO LA MONSTER E MI SENTO SUBITO EUFORICO BHOO
@@ -52,6 +54,7 @@ signal past_index: std_logic_vector(6 downto 0) := (others => '0');   --used lik
 signal temp: integer range 0 to 1:= 0;                                --used to do double SCL clicle: first for ACK/NACK statement, second one for stop_bit
                                                                       --because idle doesn't start with an if(clk_count = clk_per_bit),
                                                                       --so mastes has to do the stop_bit cicle inside stop_bit statement.
+                                                                      --plus used in timing_bit state.
 
 begin
 
@@ -287,14 +290,15 @@ begin
                             elsif((start = '1' AND past_index /= reg_index) OR rw = '1') then
                                 --idle o start veloce
                                 --posso andare in idle perchè tanto la trasmissione è sincrona con SCL
-                                current_state <= idle_bit;--idle_bit is just one ic_frequency clock pulse, it doesn't loose sincronization because transition is syncronous.
+                                current_state <= timing_bit;--idle_bit is just one ic_frequency clock pulse, it doesn't loose sincronization because transition is syncronous.
                                 busy <= '0'; --already 0.
-                                
+                                --siamo sicuri idle_bit e non timing_bit, si forse si perche ce condizione su idle ma controllare!!!!!%&/%/&%/&
+                                -- se va su idle però non ha completato ack!!!!! guardare bene
                                 
                             elsif(start = '0') then
-                                --stop transmition
+                                --stop transmition                  
                                 current_state <= stop_bit;
-
+                                
                             else                                --it will not enter here cause bit_count = 8 (9 bits) is the max allowed.
                                 current_state <= idle_bit;
                                 
@@ -302,7 +306,7 @@ begin
                             
                         else                                    --NACK management
                             current_state <= stop_bit;
-                            nack_error <= '1';
+                            nack_error <= '1';                  
                         end if;
                         
                     
@@ -415,21 +419,40 @@ begin
             
             when timing_bit =>                                  --it is a state where master counts until clk_per_bit, it is used in some state when master needs
                                                                 --to count (example repeated start, it waits ack bit before enter in idle_bit)
-                if(clk_count = 0) then
-                    SCL <= 'Z';                                 --set ACK/NACK of past state. and it stays high for the whole period.ù
-                    clk_count <= clk_count + 1;
-                elsif(clk_count = clk_per_bit-1) then
-                    current_state <= idle_bit;
-                    clk_count <= 0;                             --devo gia mettere SDA a 'Z' quan dentro a 3/4 sennò lo fa a clk_per_bit cioè a ridosso del
-                else                                            --rising edge, non va bene perchè sembra un altro fronte start o stop
-                    clk_count <= clk_count + 1;                 --forse questa cosa è meglio controllarla per tutti gli sda cambiati che non facciano qualche
-                end if;                                         --cambio quando SCL è alto
-                --dimmi che posso mettere sda gia li a 3/4, si è giusto perche lo precarica sda nel ciclo prima, poi ce SCL che va alto che lo legge,
-                --o meglio lo fa leggere allo slave e poi lo precarica a 3/4 per il prossimo SCL high nell'idle, no spe forse devo comportarmi tenendo
-                --scl alto perche e bloccata la comunicazione
-            
-            
-            
+                if(temp = 0) then
+                    if(clk_count = 0) then
+                        SCL <= 'Z';                             --set ACK/NACK of past state. and it stays high for the whole period.ù
+                        clk_count <= clk_count + 1;
+                    elsif(clk_count = (clk_per_bit-1)/2) then
+                        SCL <= '0';
+                        clk_count <= clk_count + 1;
+                    elsif(clk_count = clk_per_bit-1) then
+                        current_state <= timing_bit;
+                        temp <= 1;
+                        clk_count <= 0;                        
+                    else                                        
+                        clk_count <= clk_count + 1;             
+                    end if;                                     
+                else                                            --temp = 1, continous start condition.
+                    SCL <= 'Z';                                            
+                    if(clk_count = (clk_per_bit-1)/4) then
+                            current_state <= indrw_bit;         --start comunication.
+                            temp <= 0;
+                            SDA <= '0';
+                    else
+                        clk_count <= clk_count + 1;
+                    end if;
+                end if;
+                
+                
+                --credo però che quello che succede è che sta poi su SDA solo per un ciclo ic_frequency perchè fa subito il colpo di start forse
+                --serve un poco di tempo, o quindi tengo un po di tempo in timing_bit il bit alto dopo clk_per_bit, quindi allungo quel clk_per_bit o bho.
+                --VEDERE dovrebbe sia funzionare per wr che per rd
+                --non rimane che vedere se è da andare oltre clk_per_bit per un po' e tenere alto prima di idle o meglio che quindi idle start bit sia
+                --leggermente posticipato ma giusto per avere un leggero tempo con sda = z nel caso wr che prima è a 0
+                
+                --oppure non vado in idle però creo l'idle qua dentro.
+                --
             
             
             
@@ -502,3 +525,4 @@ end I2C_CORE_bh;
 --past current_state potrei usare nack error oppure bho ora guardo cosi faccio un if per i due casi!!!!!!!!!!!!
 --ma aspe non avevo messo il timing proprio per togliere uno dei due timing dello stop_bit?? no perchè va in idle dopo il timing perche sono quello non ce ack
 --come il solito dello stop
+--siamo sicuri che va con ciclo bloccato solo con il nack e non anche con esempio lo start = 0, tanto deve sempre andare a stop_bit e fare la condizione di stop.
