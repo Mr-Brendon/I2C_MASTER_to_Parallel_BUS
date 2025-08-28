@@ -11,6 +11,10 @@
 --and the last, so the entire period to restart clock again and set proper signals.
 --NOTE: if master has to read SDA, it sets SDA = 'Z' immediately when SCL = '0'.
 --ic_frequency >> frequency_I2C, -> ic_frequency >= 20 * frequency_I2C.
+--read or change writing data when busy becames low.
+--
+--IMPORTANT: be aware when you set start = 0, the current reading frame is not read, if you won't finish your frame, set start = 0 at the end of last frame.
+--           Wherease transmission performs all frame until last bit.
 --
 ----------------------------------------------------------------------------------
 --If it was easy, everyone would do it, this game is not easy and it's better that way.
@@ -66,7 +70,6 @@ begin
         current_state <= idle_bit;
         buffer_io <= (others => '0');
         past_index <= (others => '0');
-        reg_io <= (others => 'Z');
         reg_io <= (others => 'Z');              --it is important because if the value is high or low it could create a short-circuit.
         nack_error <= '0';
         bus_taken <= '0';--probabilmente usato poi per il multi_master
@@ -118,6 +121,7 @@ begin
                 
                 if(bit_count = 0 AND clk_count = 0) then        --just when current_state enters in indrw_bit.
                     past_index <= reg_index;                    --when current_state is indrw_bit it stores the slave index for future comparation.
+                    reg_io <= (others => 'Z');
                 end if;
                 
                 
@@ -127,7 +131,10 @@ begin
                         SCL <= '0';
                 end if;
                                                                 --slave index starts with rising edge, so SCL has to wait one period of frequency_I2C to be high again.
-                
+                if(bit_count = 0) then
+                    busy <= '0';                                --busy <= '0', is important because if it enters from timing_bit from
+                end if;                                         --continous start rd to wr busy was = '1'.
+                                                    
                 if(bit_count = 5) then
                     busy <= '1';
                 end if;
@@ -261,7 +268,7 @@ begin
                                 
                             elsif((start = '1' AND past_index /= reg_index) OR rw = '1') then
                                 --continous start
-                                current_state <= timing_bit;    --it doesn't loose sincronization because transition is syncronous.
+                                current_state <= timing_bit;    --it doesn't loose syncronization because transition is syncronous.
                                 busy <= '0'; --already 0.
 
                                 
@@ -353,21 +360,20 @@ begin
                     elsif(clk_count = clk_per_bit-1) then
                         clk_count <= 0;
                         bit_count <= 0;
-                        busy <= '0';
                         reg_io <= buffer_io;
                         
                         if(start = '1' AND rw = '1' AND past_index = reg_index) then
                             --next frame reception.
                             current_state <= rd_bit;                         --the same.
-                            
+                            busy <= '0';
                             
                         elsif((start = '1' AND past_index /= reg_index) OR rw = '0') then
-                            current_state <= timing_bit;                     --right in idle_bit like above in wr_bit state
+                            current_state <= timing_bit;                     --right in timing_bit like above in wr_bit state
+                            busy <= '1';                                     --it is important here and in start = '0' statement, to avoid reg_io short circuit
                             
-
-                                  
                         elsif(start = '0') then
                             current_state <= stop_bit;
+                            busy <= '1';
                         
                         else                                                 --it will not enter here cause bit_count = 8 (9 bits) is the max allowed.
                             current_state <= idle_bit;
@@ -388,7 +394,7 @@ begin
                                                                 --to count (example repeated start, it waits ack bit before enter in idle_bit)
                 if(temp = 0) then
                     if(clk_count = 0) then
-                        SCL <= 'Z';                             --set ACK/NACK of past state. and it stays high for the whole period.ù
+                        SCL <= 'Z';                             --set ACK/NACK of past state. and it stays high for the whole period.
                         clk_count <= clk_count + 1;
                     elsif(clk_count = (clk_per_bit-1)/2) then
                         SCL <= '0';
@@ -467,4 +473,3 @@ end process;
        
 end I2C_CORE_bh;
 
---controlla reg_io se è in tristate in modo giusto.
