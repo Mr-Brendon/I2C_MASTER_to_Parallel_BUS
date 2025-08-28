@@ -16,12 +16,7 @@
 --IMPORTANT: be aware when you set start = 0, the current reading frame is not read, if you won't finish your frame, set start = 0 at the end of last frame.
 --           Wherease transmission performs all frame until last bit.
 --
-----------------------------------------------------------------------------------
---If it was easy, everyone would do it, this game is not easy and it's better that way.
---Cazzo però leo c'è andato
---paradossalmente o neanche tanto è stato più bello e più rinfrescante parlare con Leo che lo sp
---ce mi ha dato delle idee interessanti
-----------------------------------------------------------------------------------
+
 
 
 library IEEE;
