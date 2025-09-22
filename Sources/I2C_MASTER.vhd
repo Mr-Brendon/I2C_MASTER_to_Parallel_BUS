@@ -13,10 +13,15 @@
 --ic_frequency >> frequency_I2C, -> ic_frequency >= 20 * frequency_I2C.
 --read or change writing data when busy becames low.
 --
---IMPORTANT: be aware when you set start = 0, the current reading frame is not read, if you won't finish your frame, set start = 0 at the end of last frame.
+--IMPORTANT: be aware when you set start = 0, the current reading frame is not read, if you don't want to finish your frame, set start = 0 at the end of last frame.
 --           Wherease transmission performs all frame until last bit.
 --
-
+----------------------------------------------------------------------------------
+--If it was easy, everyone would do it, this game is not easy and it's better that way.
+--Cazzo però leo c'è andato
+--paradossalmente o neanche tanto è stato più bello e più rinfrescante parlare con Leo che lo ps
+--ce mi ha dato delle idee interessanti
+----------------------------------------------------------------------------------
 
 
 library IEEE;
@@ -25,13 +30,17 @@ use IEEE.STD_LOGIC_1164.ALL;
 
 entity I2C_MASTER_CORE is
     generic(ic_frequency: integer := 27000000;        --INSERT VALUE: frequency of ic, in this case gowin fpga works with 27MHz clock.
-            frequency_I2C: integer := 100000          --INSERT VALUE: this is the effective transmission clock, it is used to count how many clk pulses are needed of internal fpga clock.
+            frequency_I2C: integer := 100000;         --INSERT VALUE: this is the effective transmission clock, it is used to count how many clk pulses are needed of internal fpga clock.
+            HIGH_TO_LOW: integer range 2 to 3:= 2;    --INSERT VALUE: in STANDARD-mode higt = low*(1/2), FAST higt = low*(1/3), den is HIGH_TO_LOW: (1/HIGH_TO_LOW)
+            FALLING_NUM: integer := 11;               --set FALLING_NUM = 11 to perform STANDARD-MODE, 23 to perform FAST-MODE
+            FALLING_DEN: integer := 20                --set FALLING_NUM = 20 to perform STANDARD-MODE, 60 to perform FAST-MODE
             );
     port(CLK, RESET, start, rw: in std_logic;
          reg_index: in std_logic_vector(6 downto 0);  --index of slave
          reg_io: inout std_logic_vector(7 downto 0);  --data byte
          SDA, SCL: inout std_logic;                   --SDA and SCL line from standard
-         nack_error, bus_taken, busy: out std_logic   --nack_error = '1' when slave not found or data byte got some troubles by slave. bus_taken = '1' error when
+         nack_error, bus_taken, busy: out std_logic;  --nack_error = '1' when slave not found or data byte got some troubles by slave. bus_taken = '1' error when
+         bus_wait, rd_flag: out std_logic
         );                                            --multi-master conflicts. busy = '1' when master is not ready to get NEW DATA BITS AND RW BIT, so during half
                                                       --data transission(second half byte) end when is in idle_state
 end I2C_MASTER_CORE;
@@ -74,6 +83,8 @@ begin
         busy <= '1';
         SDA <= 'Z';
         SCL <= 'Z';
+        bus_wait <= '0';
+        rd_flag <= '0';
         
         
     elsif(rising_edge(CLK)) then
@@ -93,6 +104,8 @@ begin
                 busy <= '0';                    --here busy is equal to '0' so master is free.
                 SDA <= 'Z';
                 SCL <= 'Z';
+                bus_wait <= '0';
+                rd_flag <= '0';
                 
                 if(start = '1') then            --start comunication.
                     current_state <= indrw_bit;
@@ -120,7 +133,7 @@ begin
                 end if;
                 
                 
-                if(clk_count < (clk_per_bit-1)/2) then          --change SCL each half period.
+                if(clk_count < (clk_per_bit-1)/HIGH_TO_LOW) then          --change SCL each half period.
                         SCL <= 'Z';
                 else
                         SCL <= '0';
@@ -158,7 +171,7 @@ begin
                 elsif(bit_count = 8) then                       --pay attention bit_count <= 1 just at current_state <= wr or rd. ACK reading if
                 
                 
-                    if(clk_count = (clk_per_bit-1)*11/20) then  --times 11/20 and not 1/2 cause master has to wait a bit more than 1/2, so 1/2 + 1/20
+                    if(clk_count = (clk_per_bit-1)*FALLING_NUM/FALLING_DEN) then --times 11/20 and not 1/2 cause master has to wait a bit more than 1/2, so 1/2 + 1/20, or 1/3 + 1/20
                         SDA <= 'Z';                             --Everytime SDA is used like an input, it requires to be setted high impedance in low edge SCL.
                         clk_count <= clk_count + 1;
                     
@@ -203,7 +216,7 @@ begin
             
                 
             when wr_bit=>
-                if(clk_count < (clk_per_bit-1)/2) then          --change SCL each half period.
+                if(clk_count < (clk_per_bit-1)/HIGH_TO_LOW) then          --change SCL each half period.
                         SCL <= 'Z';
                 else
                         SCL <= '0';
@@ -242,7 +255,7 @@ begin
                     
                 elsif(bit_count = 8) then --qui devo leggere l'ack
                 
-                    if(clk_count = (clk_per_bit-1)*11/20) then  --times 11/20 and not 1/2 cause master has to wait a bit more than 1/2, so 1/2 + 1/20
+                    if(clk_count = (clk_per_bit-1)*FALLING_NUM/FALLING_DEN) then  --times 11/20 and not 1/2 cause master has to wait a bit more than 1/2, so 1/2 + 1/20, or 1/3 + 1/20
                         SDA <= 'Z';                             --Everytime SDA is used like an input, it requires to be setted high impedance in low edge SCL.
                         clk_count <= clk_count + 1;
                     
@@ -261,7 +274,7 @@ begin
                                 --current_state <= wr_bit;      --not needed but to clarify.
                                 busy <= '1';
                                 
-                            elsif((start = '1' AND past_index /= reg_index) OR rw = '1') then
+                            elsif(start = '1' AND (past_index /= reg_index OR rw = '1')) then
                                 --continous start
                                 current_state <= timing_bit;    --it doesn't loose syncronization because transition is syncronous.
                                 busy <= '0'; --already 0.
@@ -310,7 +323,7 @@ begin
                                                                 --busy becames '0', it lasts '0' for ack bit and for first half clock frame transition period.
                                                                 --so it works contrarily than wr_bit that sets busy to '0' in second half clock period.
                                                                 
-                if(clk_count < (clk_per_bit-1)/2) then          --change SCL each half period.
+                if(clk_count < (clk_per_bit-1)/HIGH_TO_LOW) then          --change SCL each half period.
                     SCL <= 'Z';
                 else
                     SCL <= '0';
@@ -319,6 +332,12 @@ begin
                 if(bit_count = 0 AND clk_count = (clk_per_bit-1)*3/4) then  --first clock cycle is for ack bit, and it sets SDA to high impedance if
                     SDA <= 'Z';                                             --before current_state was rd_bit. This because 9 bit is setted by master to 0
                 end if;                                                     --in rd_bit
+                
+                if(bit_count = 3) then
+                    rd_flag <= '1';
+                elsif(bit_count = 5) then
+                    rd_flag <= '0';
+                end if;
                 
                 
                 if(bit_count = 5) then              --busy = '1' when bit_count > 5.
@@ -340,11 +359,12 @@ begin
                 
                 elsif(bit_count = 8) then
                 
+                     bus_wait <= '1';
                     if(clk_count = (clk_per_bit-1)*3/4) then                --precharge SDA.
                         if(start = '1' AND rw = '1' AND past_index = reg_index) then
                             --next frame reception..
                             SDA <= '0';                                     --ACK
-                        elsif((start = '1' AND past_index /= reg_index) OR rw = '0') then
+                        elsif(start = '1' AND (past_index /= reg_index OR rw = '0')) then
                             --idle o start veloce
                             SDA <= 'Z';                                     --NACK, it is a different NACK cause it will go in timing state, without passing stop_bit
                         elsif(start = '0') then
@@ -361,14 +381,17 @@ begin
                             --next frame reception.
                             current_state <= rd_bit;                         --the same.
                             busy <= '0';
+                            bus_wait <= '0';
                             
-                        elsif((start = '1' AND past_index /= reg_index) OR rw = '0') then
+                        elsif(start = '1' AND (past_index /= reg_index OR rw = '0')) then
                             current_state <= timing_bit;                     --right in timing_bit like above in wr_bit state
-                            busy <= '1';                                     --it is important here and in start = '0' statement, to avoid reg_io short circuit
+                            busy <= '0';                                     --it is important here and in start = '0' statement, to avoid reg_io short circuit
+                           
                             
                         elsif(start = '0') then
                             current_state <= stop_bit;
-                            busy <= '1';
+                            busy <= '0';
+                            
                         
                         else                                                 --it will not enter here cause bit_count = 8 (9 bits) is the max allowed.
                             current_state <= idle_bit;
@@ -389,9 +412,9 @@ begin
                                                                 --to count (example repeated start, it waits ack bit before enter in idle_bit)
                 if(temp = 0) then
                     if(clk_count = 0) then
-                        SCL <= 'Z';                             --set ACK/NACK of past state. and it stays high for the whole period.
+                        SCL <= 'Z';                             --set ACK/NACK of past state.
                         clk_count <= clk_count + 1;
-                    elsif(clk_count = (clk_per_bit-1)/2) then
+                    elsif(clk_count = (clk_per_bit-1)/HIGH_TO_LOW) then
                         SCL <= '0';
                         clk_count <= clk_count + 1;
                     elsif(clk_count = clk_per_bit-1) then
@@ -408,6 +431,7 @@ begin
                             current_state <= indrw_bit;         --start comunication.
                             temp <= 0;
                             SDA <= '0';
+                            bus_wait <= '0';
                     else
                         clk_count <= clk_count + 1;
                     end if;
@@ -419,7 +443,7 @@ begin
             
             when stop_bit =>
                 if(temp = 0) then                               --temp = '0', ACK/NACK state period clock.
-                    if(clk_count < (clk_per_bit-1)/2) then
+                    if(clk_count < (clk_per_bit-1)/HIGH_TO_LOW) then
                         SCL <= 'Z';
                     else
                         SCL <= '0';
@@ -441,13 +465,14 @@ begin
                     end if;
                     
                 else                                            --temp = '1'
-                    if(clk_count = (clk_per_bit-1)/2) then      --At half clock period, SDA <= 'Z' to perform stop action. (With SCL already high).
+                    if(clk_count = (clk_per_bit-1)/2) then      --at half clock period, SDA <= 'Z' to perform stop action. (With SCL already high).
                         SDA <= 'Z';                             --[3] here it can be (clk_per_bit-1)/2 cause SCL is always high.
                         clk_count <= clk_count + 1;
-                    elsif(clk_count = clk_per_bit-1) then
+                    elsif(clk_count = clk_per_bit-1) then       --here (clk_per_bit-1)/2) always 2 cause, signal is SDA; SCL is already high due to stop condition
                         clk_count <= 0;
                         current_state <= idle_bit;
                         temp <= 0;
+                        bus_wait <= '0';
                         
                     else
                         clk_count <= clk_count + 1;
@@ -467,4 +492,9 @@ end process;
 
        
 end I2C_CORE_bh;
+
+
+
+
+
 
