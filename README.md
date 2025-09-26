@@ -108,13 +108,21 @@ HOW TO IMPLEMENT STM32 CODE:
 
    Index pins are connected to GND or VCC to have 74 index.
    Pins are in orther from 0 to 6:
+   
    "reg_index[0]" 40; 
+
    "reg_index[1]" 35; 
+
    "reg_index[2]" 41; 
+
    "reg_index[3]" 42; 
+
    "reg_index[4]" 51; 
+
    "reg_index[5]" 53; 
+
    "reg_index[6]" 57;
+
    
 
 
