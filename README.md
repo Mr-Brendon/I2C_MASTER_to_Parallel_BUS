@@ -2,6 +2,10 @@
 It works in STANDARD and FAST MODE.
 In the following lines, it is explaned hot to use I2C_MASTER inside an FPGA (GOWIN) and test it with and STM32 mcu.
 
+
+
+
+
 HOW TO START:
 
 1) Open an HDL editor and insert I2C_MASTER.vhd and block1.vhd found in Design directory.
@@ -17,14 +21,16 @@ HOW TO IMPLEMENT I2C IN FPGA:
 
 HOW TO IMPLEMENT STM32 CODE:
 
+
+
 1) open STM_CUBE_IDE or CUBE_MX.
 2) set pins as follows (on STM32F103RB):
    
    First set pins as default on Nucleo64f103RB board
 
-   PB7 I2C_SDA
+   PB7 I2C_SDA (high_impedance, connect the line to Vcc 3.3V through a 4.7kOhm resistor).
    
-   PB6 I2C_SCL
+   PB6 I2C_SCL (high_impedance, connect the line to Vcc 3.3V through a 4.7kOhm resistor).
    
    PA0 GPIO_OUTPUT
 
@@ -74,9 +80,9 @@ HOW TO IMPLEMENT STM32 CODE:
    STM-->TANG NANO 9K
    PA0   pin_32
 
-   PB7   pin_27
+   PB7   pin_27 (high_impedance, connect the line to Vcc 3.3V through a 4.7kOhm resistor).
 
-   PB6   pin_28
+   PB6   pin_28 (high_impedance, connect the line to Vcc 3.3V through a 4.7kOhm resistor).
 
    PA1   pin_26
 
