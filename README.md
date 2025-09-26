@@ -82,22 +82,24 @@ HOW TO IMPLEMENT STM32 CODE:
 
    PA9   pin_63
 
-   PB0   pin_70
+   PB0
 
-   PB1   pin_71
+   PB1   pin_70
 
-   PB2   pin_72
+   PB2   pin_71
 
-   PB10  pin_73
+   PB10  pin_72
+
+   PB11  pin_73
    
-   PB11  pin_74
+   PB12  pin_74
 
-   PB12  pin_75
+   PB13  pin_75
 
-   PB13  pin_76
+   PB14  pin_76
 
-   PB14 pin_77
+   PB15 pin_77
 
-   PB15 
+ 
 
    PC13 
