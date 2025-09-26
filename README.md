@@ -66,13 +66,13 @@ HOW TO IMPLEMENT STM32 CODE:
 9) Connect STM32 to Tang Nano 9k pins as shown:
    
 
-   PA0 
+   PA0   pin_32
 
-   PA1 
+   PA1   pin_26
 
-   PA2 
+   PA2   connected on board
 
-   PA3 
+   PA3   connected on board
 
    PA4 
 
