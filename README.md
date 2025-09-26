@@ -56,47 +56,48 @@ HOW TO IMPLEMENT STM32 CODE:
 
    PB15 GPIO_OUTPUT
 
-   PC13 GPIO_EXTI_13 (FALLING_EDGE)
+   PC13 GPIO_EXTI_13 (FALLING_EDGE) 
 
-3) set I2C1, Standard Mode: 100kHz, 7bit addres (the addres is 74 for the project), Clock_no_stretch ENABLED.
-4) enable all EXTI and I2C interrupt, set on NVIC EXTI4, I2C1 event and error interrupt as priority = 2, and EXTI [15-10] as priority = 1.
-5) set frequency HCLK on 72 MHz.
-6) Generate code on STM_CUBE_IDE or Keil.
-7) Replace main.c with the one in Test.
-8) Connect STM32 to Tang Nano 9k pins as shown:
+4) set I2C1, Standard Mode: 100kHz, 7bit addres (the addres is 74 for the project), Clock_no_stretch ENABLED.
+5) enable all EXTI and I2C interrupt, set on NVIC EXTI4, I2C1 event and error interrupt as priority = 2, and EXTI [15-10] as priority = 1.
+6) set frequency HCLK on 72 MHz.
+7) Generate code on STM_CUBE_IDE or Keil.
+8) Replace main.c with the one in Test.
+9) Connect STM32 to Tang Nano 9k pins as shown:
    
-   PA0 GPIO_OUTPUT
 
-   PA1 GPIO_OUTPUT
+   PA0 
 
-   PA2 UART_TX
+   PA1 
 
-   PA3 UART_RX
+   PA2 
 
-   PA4 GPIO_EXTI_4 (FALLING_EDGE)
+   PA3 
 
-   PA5 GPIO_OUTPUT (LED)
+   PA4 
 
-   PA6 GPIO_EXTI_6 (FALLING_EDGE)
+   PA5 
 
-   PA9 GPIO_EXTI_9 (FALLING_EDGE)
+   PA6 
 
-   PB0 GPIO_OUTPUT
+   PA9 
 
-   PB1 GPIO_OUTPUT
+   PB0 
 
-   PB2 GPIO_OUTPUT
+   PB1 
 
-   PB10 GPIO_OUTPUT
+   PB2 
 
-   PB11 GPIO_OUTPUT
+   PB10
+   
+   PB11 
 
-   PB12 GPIO_OUTPUT
+   PB12 
 
-   PB13 GPIO_OUTPUT
+   PB13 
 
-   PB14 GPIO_OUTPUT
+   PB14 
 
-   PB15 GPIO_OUTPUT
+   PB15 
 
-   PC13 GPIO_EXTI_13 (FALLING_EDGE)
+   PC13 
