@@ -74,29 +74,29 @@ HOW TO IMPLEMENT STM32 CODE:
 
    PA3   connected on board
 
-   PA4 
+   PA4   pin_29
 
-   PA5 
+   PA5   connected on board
 
-   PA6 
+   PA6   pin_37
 
-   PA9 
+   PA9   pin_63
 
-   PB0 
+   PB0   pin_70
 
-   PB1 
+   PB1   pin_71
 
-   PB2 
+   PB2   pin_72
 
-   PB10
+   PB10  pin_73
    
-   PB11 
+   PB11  pin_74
 
-   PB12 
+   PB12  pin_75
 
-   PB13 
+   PB13  pin_76
 
-   PB14 
+   PB14 pin_77
 
    PB15 
 
