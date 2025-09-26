@@ -13,4 +13,8 @@ HOW TO IMPLEMENT I2C IN FPGA:
 2) Create New_FPGA_Project
 3) Insert target FPGA device (GW1NR-LV9QNC6/I5 for Tang Nano 9k board)
 4) Create Physical Constrain file and insert Constrain.scr found on FPGA_Implementation
-5) Create VHDL file and insert I2C_MASTER_CORE.vhd
+5) Create VHDL file and insert I2C_MASTER_.vhd
+
+HOW TO IMPLEMENT STM32 CODE:
+
+1)
