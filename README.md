@@ -4,4 +4,10 @@ In the following lines, it is explaned hot to use I2C_MASTER inside an FPGA (GOW
 
 HOW TO START:
 
-1) Open an HDL editor and insert 
+1) Open an HDL editor and insert I2C_MASTER.vhd and block1.vhd found in Design directory.
+2) To simulate the design, use the testbech found in sim directory
+
+HOW TO IMPLEMENT I2C IN FPGA:
+
+1) Download GOWIN IDE (link below)
+2) 
