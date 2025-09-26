@@ -63,3 +63,5 @@ HOW TO IMPLEMENT STM32 CODE:
 5) set frequency HCLK on 72 MHz.
 6) Generate code on STM_CUBE_IDE or Keil.
 7) Replace main.c with the one in Test.
+8) Connect STM32 to Tang Nano 9k pins as shown:
+   
