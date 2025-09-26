@@ -1,0 +1,91 @@
+
+//port(CLK, RESET, start, rw: in std_logic;
+//         reg_index: in std_logic_vector(6 downto 0);  --index of slave
+//         reg_io: inout std_logic_vector(7 downto 0);  --data byte
+//         SDA, SCL: inout std_logic;                   --SDA and SCL line from standard
+//         nack_error, bus_taken, busy: out std_logic   --nack_error = '1' when slave not found or data byte got some troubles by slave. bus_taken = '1' error when
+//        );
+
+IO_LOC "CLK" 52;
+IO_PORT "CLK" IO_TYPE = LVCMOS33 PULL_MODE = NONE;
+
+IO_LOC "RESET" 34;
+IO_PORT "RESET" IO_TYPE = LVCMOS33 PULL_MODE = NONE;
+
+IO_LOC "start" 32;//25
+IO_PORT "start" IO_TYPE = LVCMOS33 PULL_MODE = NONE;
+
+IO_LOC "rw" 26;
+IO_PORT "rw" IO_TYPE = LVCMOS33 PULL_MODE = NONE;
+
+
+IO_LOC "SDA" 27;
+IO_PORT "SDA" IO_TYPE = LVCMOS33 PULL_MODE = NONE;
+
+IO_LOC "SCL" 28;
+IO_PORT "SCL" IO_TYPE = LVCMOS33 PULL_MODE = NONE;
+
+IO_LOC "busy" 29;
+IO_PORT "busy" IO_TYPE = LVCMOS33 PULL_MODE = NONE;
+
+IO_LOC "nack_error" 30;
+IO_PORT "nack_error" IO_TYPE = LVCMOS33 PULL_MODE = NONE;
+
+IO_LOC "bus_taken" 33;
+IO_PORT "bus_taken" IO_TYPE = LVCMOS33 PULL_MODE = NONE;
+
+//reg_index 7 bit********************************************
+IO_LOC "reg_index[0]" 40;
+IO_PORT "reg_index[0]" IO_TYPE = LVCMOS33 PULL_MODE = NONE;
+
+IO_LOC "reg_index[1]" 35;
+IO_PORT "reg_index[1]" IO_TYPE = LVCMOS33 PULL_MODE = NONE;
+
+IO_LOC "reg_index[2]" 41;
+IO_PORT "reg_index[2]" IO_TYPE = LVCMOS33 PULL_MODE = NONE;
+
+IO_LOC "reg_index[3]" 42;
+IO_PORT "reg_index[3]" IO_TYPE = LVCMOS33 PULL_MODE = NONE;
+
+IO_LOC "reg_index[4]" 51;
+IO_PORT "reg_index[4]" IO_TYPE = LVCMOS33 PULL_MODE = NONE;
+
+IO_LOC "reg_index[5]" 53;
+IO_PORT "reg_index[5]" IO_TYPE = LVCMOS33 PULL_MODE = NONE;
+
+IO_LOC "reg_index[6]" 57;
+IO_PORT "reg_index[6]" IO_TYPE = LVCMOS33 PULL_MODE = NONE;
+//***********************************************************
+
+//reg_io 8 bit***********************************************
+IO_LOC "reg_io[0]" 70;
+IO_PORT "reg_io[0]" IO_TYPE = LVCMOS33 PULL_MODE = NONE;
+
+IO_LOC "reg_io[1]" 71;
+IO_PORT "reg_io[1]" IO_TYPE = LVCMOS33 PULL_MODE = NONE;
+
+IO_LOC "reg_io[2]" 72;
+IO_PORT "reg_io[2]" IO_TYPE = LVCMOS33 PULL_MODE = NONE;
+
+IO_LOC "reg_io[3]" 73;
+IO_PORT "reg_io[3]" IO_TYPE = LVCMOS33 PULL_MODE = NONE;
+
+IO_LOC "reg_io[4]" 74;
+IO_PORT "reg_io[4]" IO_TYPE = LVCMOS33 PULL_MODE = NONE;
+
+IO_LOC "reg_io[5]" 75;
+IO_PORT "reg_io[5]" IO_TYPE = LVCMOS33 PULL_MODE = NONE;
+
+IO_LOC "reg_io[6]" 76;
+IO_PORT "reg_io[6]" IO_TYPE = LVCMOS33 PULL_MODE = NONE;
+
+IO_LOC "reg_io[7]" 77;
+IO_PORT "reg_io[7]" IO_TYPE = LVCMOS33 PULL_MODE = NONE;
+
+//***********************************************************
+
+IO_LOC "bus_wait" 63;
+IO_PORT "bus_wait" IO_TYPE = LVCMOS33 PULL_MODE = NONE;
+
+IO_LOC "rd_flag" 37;
+IO_PORT "rd_flag" IO_TYPE = LVCMOS33 PULL_MODE = NONE;
