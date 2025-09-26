@@ -21,6 +21,10 @@ HOW TO IMPLEMENT STM32 CODE:
 2) set pins as follows (on STM32F103RB):
    
    First set pins as default on Nucleo64f103RB board
+
+   PB7 I2C_SDA
+   
+   PB6 I2C_SCL
    
    PA0 GPIO_OUTPUT
 
@@ -70,6 +74,10 @@ HOW TO IMPLEMENT STM32 CODE:
    STM-->TANG NANO 9K
    PA0   pin_32
 
+   PB7   pin_27
+
+   PB6   pin_28
+
    PA1   pin_26
 
    PA2   connected on board
@@ -84,7 +92,7 @@ HOW TO IMPLEMENT STM32 CODE:
 
    PA9   pin_63
 
-   PB0   ----------------------
+   PB0   pin_30
 
    PB1   pin_70
 
