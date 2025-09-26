@@ -56,7 +56,9 @@ HOW TO IMPLEMENT STM32 CODE:
 
    PB15 GPIO_OUTPUT
 
-   PC13 GPIO_EXTI_13 (FALLING_EDGE) 
+   PC13 GPIO_EXTI_13 (FALLING_EDGE)
+
+   PC1 RESET
 
 4) set I2C1, Standard Mode: 100kHz, 7bit addres (the addres is 74 for the project), Clock_no_stretch ENABLED.
 5) enable all EXTI and I2C interrupt, set on NVIC EXTI4, I2C1 event and error interrupt as priority = 2, and EXTI [15-10] as priority = 1.
@@ -65,7 +67,7 @@ HOW TO IMPLEMENT STM32 CODE:
 8) Replace main.c with the one in Test.
 9) Connect STM32 to Tang Nano 9k pins as shown:
    
-
+   STM-->TANG NANO 9K
    PA0   pin_32
 
    PA1   pin_26
@@ -82,7 +84,7 @@ HOW TO IMPLEMENT STM32 CODE:
 
    PA9   pin_63
 
-   PB0
+   PB0   ----------------------
 
    PB1   pin_70
 
@@ -98,8 +100,24 @@ HOW TO IMPLEMENT STM32 CODE:
 
    PB14  pin_76
 
-   PB15 pin_77
+   PB15  pin_77
 
- 
+   PC1   pin_34
+   
+   PC13  connected on board
 
-   PC13 
+   Index pins are connected to GND or VCC to have 74 index.
+   Pins are in orther from 0 to 6:
+   "reg_index[0]" 40; 
+   "reg_index[1]" 35; 
+   "reg_index[2]" 41; 
+   "reg_index[3]" 42; 
+   "reg_index[4]" 51; 
+   "reg_index[5]" 53; 
+   "reg_index[6]" 57;
+   
+
+
+
+
+   
