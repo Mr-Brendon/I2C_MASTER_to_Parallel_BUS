@@ -62,4 +62,4 @@ HOW TO IMPLEMENT STM32 CODE:
 4) enable all EXTI and I2C interrupt, set on NVIC EXTI4, I2C1 event and error interrupt as priority = 2, and EXTI [15-10] as priority = 1.
 5) set frequency HCLK on 72 MHz.
 6) Generate code on STM_CUBE_IDE or Keil.
-7) Replace main.c with the one in 
+7) Replace main.c with the one in Test.
