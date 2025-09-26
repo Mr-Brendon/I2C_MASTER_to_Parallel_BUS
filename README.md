@@ -17,4 +17,6 @@ HOW TO IMPLEMENT I2C IN FPGA:
 
 HOW TO IMPLEMENT STM32 CODE:
 
-1)
+1) open STM_CUBE_IDE or CUBE_MX.
+2) set pins as follows:
+   
