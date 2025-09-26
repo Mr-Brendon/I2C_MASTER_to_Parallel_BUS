@@ -4,3 +4,4 @@ In the following lines, it is explaned hot to use I2C_MASTER inside an FPGA (GOW
 
 HOW TO START:
 
+1) Open an HDL editor and insert 
