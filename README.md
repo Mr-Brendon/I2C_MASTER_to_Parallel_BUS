@@ -7,7 +7,7 @@ HOW TO CONTROL I2C MASTER:
 Test program as follows:
 After flashing TANG NANO 9K and STM32_board
 1) Reset the board (black button)
-2) Open a serial terminal(link below), set serial comunication with 115200 bps baudrate
+2) Open a serial terminal(link: https://github.com/TeraTermProject/teraterm/releases), set serial comunication with 115200 bps baudrate
 3) Push blue button to perform master trasmition of two bytes, push again to receive two bites from STM32(slave)
 4) In main.c you can change TX and RX value
 5) See TX and RX value on serial terminal
