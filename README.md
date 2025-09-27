@@ -2,6 +2,7 @@
 It works in STANDARD and FAST MODE.
 In the following lines, it is explaned hot to use I2C_MASTER inside an FPGA (GOWIN) and test it with and STM32 mcu.
 
+
 HOW TO CONTROL I2C MASTER:
 Main control pins are: busy, bus_wait, rw, rd_flag and nack_error.
 
@@ -22,6 +23,7 @@ with the device which send parallel_bus data to the master, the external devices
 
 After busy falls down, the device has to check wait_bus (it should be high), when bus_wait falls (so both busy and bus_wait are low)
 you exactly know paralel_bus is in three-state. 
+
 
 
 
