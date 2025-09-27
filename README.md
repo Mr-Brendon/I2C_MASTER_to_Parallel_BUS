@@ -5,23 +5,17 @@ In the following lines, it is explaned hot to use I2C_MASTER inside an FPGA (GOW
 
 HOW TO CONTROL I2C MASTER:
 Main control pins are: busy, bus_wait, rw, rd_flag and nack_error.
+1) When busy is low, you can change data in the parallel_bus (reg_io), otherwise when it is high, changing is not allowed.
 
-When busy is low, you can change data in the parallel_bus (reg_io), otherwise when it is high, changing is not allowed.
-
-When busy is low you can also change slave index (reg_index).
-
-If rw = 1 master performs reading mode, rw = 0 master performs writing mode.
-
-When master is in writing mode, when busy falls down you can add the next data frame or stop the comunication/ switch rw or index
+2) When busy is low you can also change slave index (reg_index).
+3) If rw = 1 master performs reading mode, rw = 0 master performs writing mode.
+4) When master is in writing mode, when busy falls down you can add the next data frame or stop the comunication/ switch rw or index
 (it finishes at the end of the current frame).
-
-When master is in reading mode, when busy falls down, you can get the parallel_bus data (), when rd_flag falls down you can stop comunication,
+5) When master is in reading mode, when busy falls down, you can get the parallel_bus data (), when rd_flag falls down you can stop comunication,
 switch rw or index (it finishes at the end of the current frame).
-
-NOTE: Be aware, when master switches from reading to writing mode, parallel_bus (reg_io) switches from output to input. To avoid short-circuit
+6) NOTE: Be aware, when master switches from reading to writing mode, parallel_bus (reg_io) switches from output to input. To avoid short-circuit
 with the device which send parallel_bus data to the master, the external devices has to wait as follows:
-
-After busy falls down, the device has to check wait_bus (it should be high), when bus_wait falls (so both busy and bus_wait are low)
+7) After busy falls down, the device has to check wait_bus (it should be high), when bus_wait falls (so both busy and bus_wait are low)
 you exactly know paralel_bus is in three-state. 
 
 
