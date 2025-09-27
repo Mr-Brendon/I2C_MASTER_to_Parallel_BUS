@@ -20,7 +20,7 @@ HOW TO START:
 
 HOW TO IMPLEMENT I2C IN FPGA:
 
-1) Download GOWIN IDE (link below).
+1) Download GOWIN IDE (link: https://www.gowinsemi.com/en/support/home/).
 2) Create New_FPGA_Project.
 3) Insert target FPGA device (GW1NR-LV9QNC6/I5 for Tang Nano 9k board).
 4) Create Physical Constrain file and insert Constrain.scr found in FPGA_Implementation directory.
