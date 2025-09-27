@@ -3,6 +3,8 @@ It works in STANDARD and FAST MODE.
 In the following lines, it is explaned hot to use I2C_MASTER inside an FPGA (GOWIN) and test it with and STM32 mcu.
 
 HOW TO CONTROL I2C MASTER:
+Main control pins are: busy, bus_wait, rd_flag and nack_error.
+busy falls down when 
 
 Test program as follows:
 After flashing TANG NANO 9K and STM32_board
