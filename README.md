@@ -21,6 +21,7 @@ you exactly know paralel_bus is in three-state.
 
 
 
+
 Test program as follows:
 After flashing TANG NANO 9K and STM32_board
 1) Reset the board (black button)
