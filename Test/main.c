@@ -51,13 +51,11 @@
 |*CODE VARIABLES|
 \***************/
 
-uint8_t RX_buffer[2];
-
-uint8_t tx_data[2];
-uint8_t rx_data[2] = {0x00, 0b11100111};
+uint8_t RX_buffer[2];																		//data received by slave
+uint8_t rx_data[2];																			//data received by master
+uint8_t tx_data[2] = {0x41, 0x42};								//data sent by master
+uint8_t TX_buffer[2] = {0x43, 0x44};				//data sent by slave
 uint8_t busy_count, rd_count = 0;
-uint8_t TX_buffer[2] = {0b00010000, 0b00011000};
-
 
 /* USER CODE END PV */
 
@@ -119,7 +117,7 @@ int main(void)
    *RX_buffer STORES DATA SENT FROM MASTER.
 	 *TX_buffer IS DATA, THE SLAVE WILL SEND.
 	 *ALL DATA SENT AND RECEIVED ARE DISPLAYED IN TERMINAL THROUGH UART TRANSMITION:
-	 *RX_buffer AND tx_data (THE DATA TRANSMITTED AND READDEN FROM FPGA TO CHECK).
+	 *RX_buffer AND rx_data (THE DATA TRANSMITTED AND READDEN FROM FPGA TO CHECK).
 	\*/
 	
 	
@@ -142,20 +140,21 @@ int main(void)
 	//reset portc1: NO_RESET
 	HAL_GPIO_WritePin(GPIOC, GPIO_PIN_1, 1);
 	
-	//busy porta4 ---> è di lettura
-	//nack_error portb0 ---> è di lettura;
-	//il bus_taken è lasciato li flottante
+	//busy porta4 ---> reading
+	//nack_error portb0 ---> writing;
+	//il bus_taken let floating
 	
 	//*********************************************************************
 	
 	
-	//disactive PIN_9 interrupt(bus_wait)
+	//disactive PIN_9 interrupt(bus_wait), not used in this code
 	EXTI->IMR &= ~EXTI_IMR_MR9;
 	
-	HAL_I2C_EnableListen_IT(&hi2c1);
-	//HAL_I2C_Slave_Receive_IT(&hi2c1, RX_buffer, sizeof(RX_buffer)); //non so perche laltra non funziona 
-	//sets first parallel data to transmit from master to slave
-	Set_GPIO_Value(rx_data[0]);
+	//enable I2C slave (reading)
+	HAL_I2C_Slave_Receive_IT(&hi2c1, RX_buffer, sizeof(RX_buffer));
+	
+	//STM32 (no I2C slave) sets first parallel data to transmit from master to slave
+	Set_GPIO_Value(tx_data[0]);
 	
 
   /* USER CODE END 2 */
@@ -221,32 +220,35 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 	{
 		case GPIO_PIN_4:						//busy
 		{
-			//At the beginning STM32 transmits, so busy should falls twice before changing.
+			//At the beginning STM32 receives, so busy should falls twice before changing to transmit.
 			
 			if(busy_count == 1)
 			{
-				//master transmits data, STM32 sets parallel data
-				Set_GPIO_Value(rx_data[1]);
+				//STM32 (no I2C slave) sets second parallel data to transmit from master to slave
+				Set_GPIO_Value(tx_data[1]);
 
 			}
 			else if(busy_count == 2)
 			{
 				//change master from transmition to reception
-				
 				//rw porta1: rw = 1 master reception
 				HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, 1);
 				
+				//start porta0 --->Switch off, start = 0
+				HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, 0);
+				
 				
 			}
-			else if(busy_count == 3)//3
+			else if(busy_count == 3)
 			{
-				//HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, 1);
-				Read_GPIO_Value(tx_data, 0);
+				//STM32 (no slave I2C) reads first parallel_bus frame from master
+				Read_GPIO_Value(rx_data, 0);
 
 			}
-			else if(busy_count == 4)//4
+			else if(busy_count == 4)
 			{
-				Read_GPIO_Value(tx_data, 1);
+				//STM32 (no slave I2C) reads second parallel_bus frame from master
+				Read_GPIO_Value(rx_data, 1);
 			}
 			busy_count++;
 			break;
@@ -259,14 +261,15 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 			
 			if(rd_count == 1)
 			{
+				//after trasmition bytes, master will receive, so STM32 has to read parallel_bus data.
 				Set_Pins_As_Input();
 			}
-			if(rd_count == 2)//da capire perche ne leggeva uno in piu nel codice c
+			if(rd_count == 2)
 			{
+				//finish comunication
 				//start porta0 --->NO start = 0
 				HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, 0);
 			}
-			
 			break;
 		}
 		
@@ -287,7 +290,6 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 		case GPIO_PIN_13:						//blue_button
 		{
 			//start comunication
-			//HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
 			//start porta0 ---> start = 1
 			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, 1);
 			break;
@@ -297,40 +299,29 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 	
 }
 
-void HAL_I2C_AddrCallback(I2C_HandleTypeDef *hi2c, uint8_t TransferDirection, uint16_t AddrMatchCode)
-{
-    if (hi2c->Instance == hi2c1.Instance)
-    {
-        if (TransferDirection == I2C_DIRECTION_RECEIVE) // master scrive sullo slave
-					HAL_I2C_Slave_Seq_Transmit_IT(hi2c, TX_buffer, sizeof(TX_buffer), I2C_LAST_FRAME);
-				else
-					HAL_I2C_Slave_Seq_Receive_IT(hi2c, RX_buffer, sizeof(RX_buffer), I2C_LAST_FRAME);
-    }
-}
 
 
 void HAL_I2C_SlaveRxCpltCallback(I2C_HandleTypeDef *hi2c)
 {
 	uint8_t rtr1[] = "Il valore dei frames sono: ";
 	uint8_t rtr2[] = "\r\n";
+	
 	HAL_UART_Transmit(&huart2, rtr1, sizeof(rtr1), 100);
 	HAL_UART_Transmit(&huart2, RX_buffer, sizeof(RX_buffer), 100);
 	HAL_UART_Transmit(&huart2, rtr2, sizeof(rtr2), 100);
-	//HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, 1);
-	//reseive two frames
-	//HAL_I2C_Slave_Transmit_IT(&hi2c1, TX_buffer, sizeof(TX_buffer));
+	
+	//transmit I2C slave setup
+	HAL_I2C_Slave_Transmit_IT(&hi2c1, TX_buffer, sizeof(TX_buffer));
 
 }
 
 void HAL_I2C_SlaveTxCpltCallback(I2C_HandleTypeDef *hi2c)
 {
-	//HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, 1);
-	//HAL_I2C_Slave_Receive_IT(&hi2c1, RX_buffer, sizeof(RX_buffer));
 	uint8_t rtr1[] = "Il valore dei frames sono: ";
 	uint8_t rtr2[] = "\r\n";
 	
 	HAL_UART_Transmit(&huart2, rtr1, sizeof(rtr1), 100);
-	HAL_UART_Transmit(&huart2, tx_data, sizeof(tx_data), 100);
+	HAL_UART_Transmit(&huart2, rx_data, sizeof(rx_data), 100);
 	HAL_UART_Transmit(&huart2, rtr2, sizeof(rtr2), 100);
 }
 
@@ -342,55 +333,54 @@ void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c)
 
     if (error == HAL_I2C_ERROR_NONE)
     {
-        // Nessun errore
+        // No errors
         //HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, 1);
     }
     else if (error == HAL_I2C_ERROR_BERR)
     {
-        // Bus error: errore su start/stop/condizioni illegali sul bus
+        // Bus error
         //HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, 1);
     }
     else if (error == HAL_I2C_ERROR_ARLO)
     {
-        // Arbitration lost: persa l'arbitraggio (slave non dovrebbe perderlo, ma può succedere)
+        // Arbitration lost
         //HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, 1);
     }
     else if (error == HAL_I2C_ERROR_AF)
     {
-        // Acknowledge failure: master ha mandato NACK (es. fine lettura o start ripetuto)
+        // Acknowledge failure
         //HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, 1);
     }
     else if (error == HAL_I2C_ERROR_OVR)
     {
-        // Overrun/Underrun: il master ha mandato/richiesto più dati di quanti lo slave si aspettasse
+        // Overrun/Underrun
         //HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, 1);
     }
     else if (error == HAL_I2C_ERROR_DMA)
     {
-        // DMA transfer error (solo se usi DMA)
+        // DMA transfer error
         //HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, 1);
     }
     else if (error == HAL_I2C_ERROR_TIMEOUT)
     {
-        // Timeout: slave ha aspettato troppo (es. master bloccato o scollegato)
+        // Timeout
         //HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, 1);
     }
     else if (error == HAL_I2C_ERROR_SIZE)
     {
-        // Errore di dimensione: dati maggiori della lunghezza prevista
+        // Dimention error
         //HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, 1);
     }
     else if (error == HAL_I2C_ERROR_DMA_PARAM)
     {
-        // Parametri invalidi nella configurazione DMA
+        // DMA wrong parameters
         //HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, 1);
     }
     else
     {
-        // Errore sconosciuto
         char error_msg[64];
 				uint32_t error = HAL_I2C_GetError(hi2c);
-				snprintf(error_msg, sizeof(error_msg), "Errore I2C: 0x%08lX\r\n", (unsigned long)error);
+				snprintf(error_msg, sizeof(error_msg), "Error I2C: 0x%08lX\r\n", (unsigned long)error);
 				HAL_UART_Transmit(&huart2, (uint8_t*)error_msg, strlen(error_msg), 100);
     }
 }
@@ -444,7 +434,7 @@ void Set_Pins_As_Input(void)
 	//set parallel bus as input
 	GPIO_InitTypeDef GPIO_InitStruct = {0};
 
-	// Reinizializza i pin come input (nessun pull-up/down)
+	// Reinit pins as input (no pull-up/down)
 	GPIO_InitStruct.Pin = GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_10 |
 												GPIO_PIN_11 | GPIO_PIN_12 | GPIO_PIN_13 |
 												GPIO_PIN_14 | GPIO_PIN_15;
