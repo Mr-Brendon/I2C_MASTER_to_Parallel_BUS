@@ -51,10 +51,10 @@
 |*CODE VARIABLES|
 \***************/
 
-uint8_t RX_buffer[2];																		//data received by slave
-uint8_t rx_data[2];																			//data received by master
+uint8_t RX_buffer[2];											//data received by slave
+uint8_t rx_data[2];												//data received by master
 uint8_t tx_data[2] = {0x41, 0x42};								//data sent by master
-uint8_t TX_buffer[2] = {0x43, 0x44};				//data sent by slave
+uint8_t TX_buffer[2] = {0x43, 0x44};							//data sent by slave
 uint8_t busy_count, rd_count = 0;
 
 /* USER CODE END PV */
@@ -108,17 +108,17 @@ int main(void)
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
 
-	/****************************************************************************\
+  /****************************************************************************\
   |*MAIN CODE I2C: TESTER FOR I2C MASTER STANDARD MODE ON FPGA, STM32 I2C SLAVE|
-	\****************************************************************************/		
+  \****************************************************************************/		
 	
-	/*\THIS SCRIPT PROVIDES TESTING FPGA I2C MASTER, AT THE BEGINNING MASTER WRITES DATA AND STM32 SLAVE READS DATA,
+  /*\THIS SCRIPT PROVIDES TESTING FPGA I2C MASTER, AT THE BEGINNING MASTER WRITES DATA AND STM32 SLAVE READS DATA,
    *THEN MASTER WORKS AS RECEIVER DEVICE, SO STM32 WILL SEND DATA.
    *RX_buffer STORES DATA SENT FROM MASTER.
-	 *TX_buffer IS DATA, THE SLAVE WILL SEND.
-	 *ALL DATA SENT AND RECEIVED ARE DISPLAYED IN TERMINAL THROUGH UART TRANSMITION:
-	 *RX_buffer AND rx_data (THE DATA TRANSMITTED AND READDEN FROM FPGA TO CHECK).
-	\*/
+   *TX_buffer IS DATA, THE SLAVE WILL SEND.
+   *ALL DATA SENT AND RECEIVED ARE DISPLAYED IN TERMINAL THROUGH UART TRANSMITION:
+   *RX_buffer AND rx_data (THE DATA TRANSMITTED AND READDEN FROM FPGA TO CHECK).
+  \*/
 	
 	
 	
