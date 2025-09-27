@@ -22,7 +22,7 @@ you exactly know paralel_bus is in three-state.
 
 
 
-Test program as follows:
+TEST PROGRAM AS FOLLOWS:
 After flashing TANG NANO 9K and STM32_board
 1) Reset the board (black button)
 2) Open a serial terminal(link: https://github.com/TeraTermProject/teraterm/releases), set serial comunication with 115200 bps baudrate
