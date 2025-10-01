@@ -11,7 +11,7 @@ Main control pins are: busy, bus_wait, rw, rd_flag and nack_error.
 3) If rw = 1 master performs reading mode, rw = 0 master performs writing mode.
 4) When master is in writing mode, when busy falls down you can add the next data frame or stop the comunication/ switch rw or index
 (it finishes at the end of the current frame).
-5) When master is in reading mode, when busy falls down, you can get the parallel_bus data (), when rd_flag falls down you can stop comunication,
+5) When master is in reading mode, when busy falls down, you can get the parallel_bus data , when rd_flag falls down you can stop comunication,
 switch rw or index (it finishes at the end of the current frame).
 6) NOTE: Be aware, when master switches from reading to writing mode, parallel_bus (reg_io) switches from output to input. To avoid short-circuit
 with the device which send parallel_bus data to the master, the external devices has to wait as follows:
